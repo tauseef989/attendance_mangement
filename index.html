@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Attendance App</title>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body>
+  <h2>Attendance App</h2>
+  <label for="date">Select a Date:</label>
+  <input type="date" id="date">
+  <button onclick="searchAttendance()">Search</button>
+  
+  <div id="studentList"></div>
+  
+  <button id="markAttendanceBtn" onclick="markAttendance()" style="display: none;">Mark Attendance</button>
+  <button onclick="fetchAttendanceReport()">Fetch Attendance Report</button>
+
+  <script>
+    function searchAttendance() {
+      const date = document.getElementById('date').value;
+      const studentList = document.getElementById('studentList');
+
+      // Clear previous list
+      studentList.innerHTML = '';
+
+      // Fetch attendance data for the selected date from the backend using Axios
+      axios.get(`http://localhost:3000/attendance/${date}`)
+        .then(response => {
+          const data = response.data;
+          const students = ['Tauseef', 'Rehan', 'Ahmed', 'Zafar', 'Shahzad'];
+          students.forEach(student => {
+            const studentDiv = document.createElement('div');
+            const attendance = data.find(item => item.student === student);
+            if (attendance) {
+              // If attendance is marked, display the attendance status text
+              studentDiv.innerHTML = `<p>${student}: ${attendance.status}</p>`;
+            } else {
+              // If attendance is not marked, display radio buttons for marking attendance
+              studentDiv.innerHTML = `
+                <p>${student}</p>
+                <input type="radio" name="${student}" value="present"> Present
+                <input type="radio" name="${student}" value="absent"> Absent
+                <br><br>
+              `;
+            }
+            studentList.appendChild(studentDiv);
+          });
+
+          // Show or hide the "Mark Attendance" button based on whether attendance is marked
+          const markAttendanceBtn = document.getElementById('markAttendanceBtn');
+          markAttendanceBtn.style.display = data.length > 0 ? 'none' : 'block';
+        })
+        .catch(error => console.error('Error fetching attendance data:', error));
+    }
+
+    function markAttendance() {
+      const date = document.getElementById('date').value;
+      const attendanceData = {};
+
+      // Get attendance data for each student
+      const students = ['Tauseef', 'Rehan', 'Ahmed', 'Zafar', 'Shahzad'];
+      students.forEach(student => {
+        const attendance = document.querySelector(`input[name="${student}"]:checked`);
+        attendanceData[student] = attendance ? attendance.value : '';
+      });
+
+      // Send attendance data to server using Axios
+      axios.post('http://localhost:3000/attendance', { date, attendanceData })
+        .then(response => {
+          console.log('Attendance stored successfully');
+        })
+        .catch(error => console.error('Error storing attendance:', error));
+    }
+
+    function fetchAttendanceReport() {
+      const studentList = document.getElementById('studentList');
+      studentList.innerHTML = ''; // Clear previous list
+
+      // Fetch attendance report from the backend
+      axios.get('http://localhost:3000/attendance/report/a')
+        .then(response => {
+          const reportData = response.data;
+          console.log("f",reportData)
+          reportData.forEach(report => {
+            const studentDiv = document.createElement('div');
+            studentDiv.innerHTML = `
+              <p>${report.student}: ${report.present}/${report.total} (${report.percentage}%)</p>
+            `;
+            studentList.appendChild(studentDiv);
+          });
+        })
+        .catch(error => console.error('Error fetching attendance report:', error));
+    }
+  </script>
+</body>
+</html>
+
